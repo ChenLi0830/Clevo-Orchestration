@@ -1,0 +1,17 @@
+{
+  "name": "clevo-audio-formatting-service",
+  "version": "1.0.0",
+  "description": "ML-Docker-Image",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node app.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^1.18.2",
+    "express": "^4.16.2",
+    "fluent-ffmpeg": "^2.1.2"
+  }
+}

@@ -1,20 +1,8 @@
 const {formatAudio} = require('../services')
-console.log('formatAudio', formatAudio)
 
-
-function handleOSSEvents (events) {
-  console.log('events', JSON.stringify(events))
-  // Get all urls of all the files
-  let urls = []
-  events.forEach(event => {
-    if (event.eventName === 'ObjectCreated:PostObject') {
-      let url = `http://${event.oss.bucket.name}.oss-${event.region}.aliyuncs.com/${event.oss.object.key}`
-      urls.push(url)
-    }
-  })
-
-  let promises = urls.map(url => {
-    formatAudio(url).then(result => {
+function processAudioFiles (urlArr) {
+  let promises = urlArr.map(url => {
+    return formatAudio(url).then(result => {
       //    console.log('result', result)
       //    return categorizeAudio(url)
       //  }).then(result => {
@@ -37,9 +25,22 @@ function handleOSSEvents (events) {
 
   return Promise.all(promises)
     .then(results => {
-      return console.log("results", results)
+      return console.log('results', results)
+    })
+}
+
+function handleOSSEvents (events) {
+  console.log('events', JSON.stringify(events))
+  // Get all urls of all the files
+  let urls = []
+  events.forEach(event => {
+    if (event.eventName === 'ObjectCreated:PostObject') {
+      let url = `http://${event.oss.bucket.name}.oss-${event.region}.aliyuncs.com/${event.oss.object.key}`
+      urls.push(url)
+    }
   })
 
+  return processAudioFiles(urls)
 }
 
 module.exports = handleOSSEvents

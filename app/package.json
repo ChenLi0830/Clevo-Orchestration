@@ -10,8 +10,11 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "ali-oss": "^4.11.2",
+    "apollo-fetch": "^0.6.0",
     "body-parser": "^1.18.2",
-    "express": "^4.16.2",
-    "fluent-ffmpeg": "^2.1.2"
+    "debug": "^3.1.0",
+    "dotenv": "^4.0.0",
+    "express": "^4.16.2"
   }
 }

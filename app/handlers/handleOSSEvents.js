@@ -2,7 +2,7 @@ const {formatAudio} = require('../services')
 
 function processAudioFiles (urlArr) {
   let promises = urlArr.map(url => {
-    return formatAudio(url).then(result => {
+    return formatAudio(url).then(savedAudioUrl => {
       //    console.log('result', result)
       //    return categorizeAudio(url)
       //  }).then(result => {
@@ -16,8 +16,8 @@ function processAudioFiles (urlArr) {
       //    // post processing and save result
       //    console.log('result', result)
       //  }).then(() => {
-      console.log(`File has been processed: ${url}`)
-      return url
+      console.log(`File has been processed: ${savedAudioUrl}`)
+      return savedAudioUrl
     }).catch(error => {
       console.log('error', error)
     })

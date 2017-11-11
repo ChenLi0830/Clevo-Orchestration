@@ -1,28 +1,40 @@
 const { createApolloFetch } = require('apollo-fetch')
-const formatAudioEndpoint = process.env.FORMAT_AUDIO_ENDPOINT || `http://localhost:3030/graphql`
 
-const formatAudio = (audioUrl) => {
+const formatAudio = ({audioUrl, encoding = 'pcm_s16le', channel = 1, sampleRate = 8000}) => {
   const fetch = createApolloFetch({
-    uri: formatAudioEndpoint
+    uri: process.env.FORMAT_AUDIO_ENDPOINT || `http://localhost:3030/graphql`
   })
 
-  const variables = {
-    audioUrl
-  }
-
-  const formatAudioMutation = `
-    mutation formatAudio($audioUrl:String!){
-      formatAudioFile(audioUrl:$audioUrl){
+  const query = `
+    mutation formatAudio(
+      $audioUrl:String!
+      $encoding: Encoding
+      $channel: Int
+      $sampleRate: Int
+    ){
+      formatAudioFile(
+        audioUrl:$audioUrl, 
+        encoding: $encoding, 
+        channel: $channel
+        sampleRate: $sampleRate
+      ){
         url
       }
     }
   `
 
   return fetch({
-    query: formatAudioMutation,
-    variables
-  }).then(body => {
-    let data = body.data
+    query,
+    variables: {
+      audioUrl,
+      encoding,
+      channel,
+      sampleRate
+    }
+  }).then(({errors, data}) => {
+    if (errors) {
+      throw errors[0]
+    }
     if (!data) {
       throw new Error(`call format Audio service failed`)
     }

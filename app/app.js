@@ -1,4 +1,4 @@
-require('dotenv').config()
+require('dotenv').config({path: '../.env'})
 
 const express = require('express')
 const app = express()
@@ -19,8 +19,8 @@ const OSSErrorHandler = (err, req, res, next) => {
 }
 
 // parse body
-app.use(bodyParser.json())       // to support JSON-encoded bodies
-app.use(bodyParser.urlencoded({     // to support URL-encoded bodies
+app.use(bodyParser.json()) // to support JSON-encoded bodies
+app.use(bodyParser.urlencoded({ // to support URL-encoded bodies
   extended: true
 }))
 app.use(bodyParser.text()) // to support plain text
@@ -30,7 +30,12 @@ app.get('/', (req, res) => res.send('Orchestration Service is up :D!'))
 app.get('/notifications', (req, res) => res.send('/notifications Orchestration Service is up :D!'))
 
 app.post('/', (req, res) => {
-  debug('req', req)
+  // debug('req', req)
+  require('./__test__/testCategorization')()
+    .then(result => {
+      debug('test result', result)
+    })
+  // debug('test', test)
   res.send('Got a POST request')
 })
 
@@ -39,7 +44,6 @@ app.post('/notifications', (req, res, next) => {
   const bodyStr = Buffer.from(req.body, 'base64').toString('ascii')
   const body = JSON.parse(bodyStr)
 
-  //  let body = new Buffer("eyJldmVudHMiOiBbewogICAgICAgICAgICAiZXZlbnROYW1lIjogIk9iamVjdENyZWF0ZWQ6UG9zdE9iamVjdCIsCiAgICAgICAgICAgICJldmVudFNvdXJjZSI6ICJhY3M6b3NzIiwKICAgICAgICAgICAgImV2ZW50VGltZSI6ICIyMDE3LTExLTA5VDE3OjU5OjQzLjAwMFoiLAogICAgICAgICAgICAiZXZlbnRWZXJzaW9uIjogIjEuMCIsCiAgICAgICAgICAgICJvc3MiOiB7CiAgICAgICAgICAgICAgICAiYnVja2V0IjogewogICAgICAgICAgICAgICAgICAgICJhcm4iOiAiYWNzOm9zczpjbi1iZWlqaW5nOjE4MjUyMjgzMzUyMzAyNDk6Y29tcGFuaWVzLWNhbGxzIiwKICAgICAgICAgICAgICAgICAgICAibmFtZSI6ICJjb21wYW5pZXMtY2FsbHMiLAogICAgICAgICAgICAgICAgICAgICJvd25lcklkZW50aXR5IjogIjE4MjUyMjgzMzUyMzAyNDkiLAogICAgICAgICAgICAgICAgICAgICJ2aXJ0dWFsQnVja2V0IjogIiJ9LAogICAgICAgICAgICAgICAgIm9iamVjdCI6IHsKICAgICAgICAgICAgICAgICAgICAiZGVsdGFTaXplIjogMjcyNTkyLAogICAgICAgICAgICAgICAgICAgICJlVGFnIjogIkY3MzRCOENBRUI3ODc3MzI0N0UwMTlGNEYzNjQzQjU5IiwKICAgICAgICAgICAgICAgICAgICAia2V5IjogIjIwMTcwNjI1MDgzOTA0Xzk2MF8xODg0MTMyMzczMV82MDEubXAzIiwKICAgICAgICAgICAgICAgICAgICAic2l6ZSI6IDI3MjU5Mn0sCiAgICAgICAgICAgICAgICAib3NzU2NoZW1hVmVyc2lvbiI6ICIxLjAiLAogICAgICAgICAgICAgICAgInJ1bGVJZCI6ICJ0ZXN0In0sCiAgICAgICAgICAgICJyZWdpb24iOiAiY24tYmVpamluZyIsCiAgICAgICAgICAgICJyZXF1ZXN0UGFyYW1ldGVycyI6IHsic291cmNlSVBBZGRyZXNzIjogIjIwNi4yMTQuMjQ2LjE5NiJ9LAogICAgICAgICAgICAicmVzcG9uc2VFbGVtZW50cyI6IHsicmVxdWVzdElkIjogIjVBMDQ5NzgzM0Y0MzRCQUQ0OURFNERGOSJ9LAogICAgICAgICAgICAidXNlcklkZW50aXR5IjogeyJwcmluY2lwYWxJZCI6ICIxODI1MjI4MzM1MjMwMjQ5In19XX0=", 'base64').toString('ascii')
   if (!body || !body.events) {
     return next(new Error('Request body is empty, it seems this request is not triggered by OSS'))
   }
@@ -53,4 +57,8 @@ app.post('/notifications', (req, res, next) => {
 app.use(OSSErrorHandler)
 
 let port = process.env.PORT || 3000
-app.listen(port, () => console.log(`App listening on port ${port}!`))
+const server = app.listen(port, () => debug(`App listening on port ${port}!`))
+
+// increase the timeout to 1 hour
+// app.timeout = 3600000
+server.setTimeout(60 * 60 * 1000)

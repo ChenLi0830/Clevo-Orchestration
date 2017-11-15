@@ -1,3 +1,4 @@
+const debug = require('debug')('handleOSSEvent')
 const formatAudioService = require('../services/formatAudio')
 const transcribeSpeechAndSave = require('../services/transcribeSpeech')
 
@@ -6,11 +7,12 @@ function processAudioFiles (urlArr) {
     // todo read company configuration, and use the configurations for the variables for this
     return formatAudioService({audioUrl: url})
     .then(savedAudioUrl => {
-      console.log(`Audio file has been formatted: ${savedAudioUrl}`)
+      debug(`Audio file has been formatted: ${savedAudioUrl}`)
+
       return transcribeSpeechAndSave(url)
     })
     .then(savedTranscription => {
-      console.log('savedTranscription', savedTranscription)
+      debug('savedTranscription', savedTranscription)
     })
       //    // save text categorization result
       //    console.log('result', result)

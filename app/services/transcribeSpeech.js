@@ -6,7 +6,6 @@ function saveServiceResult ({result, sourceUrl}) {
     uri: process.env.SERVER_ENDPOINT || `http://localhost:4000/graphql`
   })
 
-  console.log('result, sourceUrl', result, sourceUrl)
   const query = `
     mutation callCreate (
         $status: EnumCallStatus,
@@ -39,6 +38,9 @@ function saveServiceResult ({result, sourceUrl}) {
         }
     }}
   `
+
+  debug('JSON.parse(result.result)', JSON.parse(result.result))
+  debug('JSON.stringify(result.result)', JSON.stringify(result.result))
   return fetch({
     query,
     variables: {
@@ -50,17 +52,16 @@ function saveServiceResult ({result, sourceUrl}) {
         processor: 'iflytek',
         taskId: result.id,
         status: result.status,
+        // result: result.result
         result: JSON.parse(result.result)
       }
     }
   })
 
-  .then(body => {
-    console.log('body', body)
-    console.log('body.data', body.data)
-    console.log('body.data.callCreate', body.data.callCreate)
-    return body.data.callCreate
-  })
+    .then(body => {
+      debug('body.data.callCreate', body.data.callCreate)
+      return body.data.callCreate
+    })
 }
 
 function callService (audioUrl) {
@@ -87,8 +88,9 @@ function callService (audioUrl) {
   return fetch({
     query,
     variables
-  }).then(body => {
-      // debug('service response body', body)
+  })
+  .then(body => {
+    // debug('service response body', body)
     let data = body.data
     if (!data) {
       throw new Error(`call transcribe-speech service failed`)
@@ -100,8 +102,9 @@ function callService (audioUrl) {
 function transcribeSpeechAndSave (audioUrl) {
   return callService(audioUrl)
     .then(transcriptionResult => {
-    // console.log('Audio file has been transcribed: ', transcriptionResult)
-    // console.log('url', url)
+      debug('Audio file has been transcribed: ', transcriptionResult)
+      // debug('Audio file has been transcribed: ', transcriptionResult)
+      // console.log('url', url)
       return saveServiceResult({result: transcriptionResult, sourceUrl: audioUrl})
     })
 }

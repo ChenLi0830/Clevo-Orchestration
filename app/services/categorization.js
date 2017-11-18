@@ -6,30 +6,10 @@ const {createApolloFetch} = require('apollo-fetch')
 const _defaultBannedWords = ['不清楚', '不可能', '不明白', '不知道', '黑名单', '加白', '群发短信', '沉默短信', '屏蔽']
 const _defaultAlertWords = ['媒体', '记者', '工信部', '律师', '媒体', '记者', '消协', '诈骗', '曝光']
 
-const callNLPMethod = (inputTxt, url) => {
-  let params = {text: inputTxt}
-  const searchParams = Object.keys(params).map((key) => {
-    return encodeURIComponent(key) + '=' + encodeURIComponent(params[key])
-  }).join('&')
-
-  return fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
-    },
-    body: searchParams
-  })
-    .then((response) => {
-      debug('callNLPMethod response', response)
-      return response.text()
-    })
-    .then(result => {
-      return result
-    })
-}
-
 const getSpeechCategorization = (aggregatedTranscription) => {
-  return callNLPMethod(aggregatedTranscription, 'https://clevo-categorize.appspot.com/')
+  return new Promise((resolve, reject) => {
+    return resolve('')
+  })
 }
 
 const getSentenseCategorization = (sentence) => {
@@ -73,84 +53,108 @@ const getWordsFromTranscript = (transcript, words) => {
   return result
 }
 
-// function saveServiceResult ({result, sourceUrl}) {
-//   const fetch = createApolloFetch({
-//     uri: process.env.SERVER_ENDPOINT || `http://localhost:4000/graphql`
-//   })
+function saveServiceResult ({_id, result}) {
+  const fetch = createApolloFetch({
+    uri: process.env.SERVER_ENDPOINT || `http://localhost:4000/graphql`
+  })
 
-//   debug('result, sourceUrl', result, sourceUrl)
-//   const query = `
-//     mutation callCreate (
-//         $status: EnumCallStatus,
-//         $format: EnumCallFormat,
-//         $encoding: EnumCallEncoding,
-//         $source: String,
-//         $transcription: CallTranscriptionInput,
-//     ) { callCreate (record: {
-//         status: $status,
-//         format: $format,
-//         encoding: $encoding,
-//         source: $source,
-//         transcription: $transcription,
-//     }) {
-//         recordId
-//         record {
-//         _id,
-//         status,
-//         format,
-//         encoding,
-//         source,
-//         transcription {
-//             processor,
-//             taskId,
-//             status,
-//             result
-//         },
-//         createdAt,
-//         updatedAt
-//         }
-//     }}
-//   `
-//   return fetch({
-//     query,
-//     variables: {
-//       status: 'active',
-//       format: 'wav',
-//       encoding: 'pcm',
-//       source: sourceUrl,
-//       transcription: {
-//         processor: 'iflytek',
-//         taskId: result.id,
-//         status: result.status,
-//         result: JSON.parse(result.result)
-//       }
-//     }
-//   })
+  debug('result', result)
+  const query = `
+    mutation updateCall(
+      $id: MongoID!
+      $nlp: CallNlpInput
+    ){
+      callUpdate(record: {
+        _id: $id
+        nlp: $nlp
+      }){
+        record {
+          status
+          format
+          encoding
+          source
+          startedAt
+          subject
+          createdAt
+          updatedAt
+          organization {
+            name
+            status
+            createdAt
+            updatedAt
+          }
+          emotion {
+            processor
+            taskId
+            status
+            result
+          }
+          statistics {
+            speechDuration
+            slienceDuration
+            staffTalkDuraion
+            customerTalkDuration
+          }
+          breakdowns {
+            begin
+            end
+            transcript
+            intent
+            speaker
+            _id
+          }
+          transcription {
+            processor
+            taskId
+            status
+            result
+          }
+          nlp {
+            processor
+            taskId
+            status
+            result
+          }
+        }
+        recordId
+      }
+    }
+  `
+  return fetch({
+    query,
+    variables: {
+      'id': _id,
+      'nlp': {
+        'processor': 'clevo',
+        'status': 'completed',
+        'result': result
+      }
+    }
+  })
 
-//     .then(body => {
-//       debug('body', body)
-//       debug('body.data', body.data)
-//       debug('body.data.callCreate', body.data.callCreate)
-//       return body.data.callCreate
-//     })
-// }
+    .then(body => {
+      debug('body', body)
+      debug('body.data', body.data)
+      debug('body.data.updateCall', body.data.updateCall)
+      return body.data.updateCall
+    })
+}
 
 function callService (transcriptionResult, bannedWords, alertWords) {
   // remove the first and last quote sign to get the array
   let sentencesStr = transcriptionResult.record.transcription.result.slice(1, -1)
+
   // replace all single quote with double quote to parse
   let sentencesChangeSign = sentencesStr.replace(/'/g, '"')
   let sentenceList = JSON.parse(sentencesChangeSign)
   // debug('sentenceList', sentenceList)
 
-  const fileName = transcriptionResult.record.source.split('/').slice(-1)
-
-  // nlp promises 包括两部分，对整段话getSpeechCategorization和对每句话getSentenseCategorization
+  // const fileName = transcriptionResult.record.source.split('/').slice(-1)
   let nlpPromises = []
 
   // 整段对话
-  // let speechTranscription = sentenceList.reduce((speech, sentence) => speech + sentence, '')
-  // nlpPromises.push(getSpeechCategorization(speechTranscription))
+  let speechTranscription = sentenceList.reduce((speech, sentence) => speech + sentence, '')
+  nlpPromises.push(getSpeechCategorization(speechTranscription))
 
   // 每句对话
   sentenceList.forEach(transcription => {
@@ -175,31 +179,32 @@ function callService (transcriptionResult, bannedWords, alertWords) {
 
   return Promise.all(nlpPromises)
     .then(results => {
-      debug('results', JSON.stringify(results))
+      // debug('results', JSON.stringify(results))
+      let categorizeResult = {}
+      categorizeResult.topicCategory = results[0]
+      categorizeResult.sentenceCategories = results.slice(1)
+
+      return categorizeResult
+    // newFields.staff = getEmployeeId(fileName, staffIdStartIndex, staffIdEndIndex)
+    // staff: MongoID
+    // breakdowns:
+    // subject:
+    // statistics: silence etc
+    // organization: MongoID
+    // format: EnumCallFormat
+    // encoding: EnumCallEncoding
+    // let durationObj = analyzeTalkDurations(transcriptionList)
+    // newFields = Object.assign({}, newFields, durationObj)
     })
-
-    // return Promise.all(nlpPromises)
-    //   .then(results => {
-    //     let newFields = {}
-    //     newFields.categorizedSpeechTopic = results[0]
-    //     newFields.categorizeResult = results.slice(1)
-    //     newFields.employeeId = getEmployeeId(fileName)
-    //     let durationObj = analyzeTalkDurations(transcriptionList)
-    //     newFields = Object.assign({}, newFields, durationObj)
-
-    //     debug('newFields', newFields)
-
-//     return processedSpeechUpdate(fileName, newFields)
-//   })
 }
 
-function CategorizeAndSave (transcriptionResult, bannedWords = _defaultBannedWords, alertWords = _defaultAlertWords) {
-  return callService(transcriptionResult, bannedWords, alertWords)
+function CategorizeAndSave (transcriptionResult, bannedWords = _defaultBannedWords , alertWords = _defaultAlertWords , staffIdStartIndex, staffIdEndIndex) {
+  return callService(transcriptionResult, bannedWords, alertWords, staffIdStartIndex, staffIdEndIndex)
     .then(categorizationResult => {
+      debug('categorizationResult.topicCategory')
       // debug('Audio file has been transcribed: ', transcriptionResult)
       // debug('url', url)
-      // return saveServiceResult({result: categorizationResult})
-      return {sentenceCategories: '', topicCategory: ''}
+      return saveServiceResult({_id: transcriptionResult.recordId, result: categorizationResult})
     })
 }
 

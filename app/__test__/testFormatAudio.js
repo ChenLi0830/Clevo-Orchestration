@@ -1,5 +1,6 @@
 const formatAudio = require('../services/formatAudio')
 const debug = require('debug')('test')
+// require('dotenv').config({path: '../../.env'})
 require('dotenv').config({path: '../.env'})
 
 const data = {
@@ -9,12 +10,10 @@ const data = {
   sampleRate: 8000
 }
 
-module.exports = function () {
-  return formatAudio(data)
-    .then(result => {
-      // const {sentenceCategories, topicCategory} = result
-      // debug('sentenceCategories', sentenceCategories)
-      debug('result', result)
-      return result
-    })
-}
+formatAudio(data)
+  .then(result => {
+    // const {sentenceCategories, topicCategory} = result
+    // debug('sentenceCategories', sentenceCategories)
+    debug('result', result)
+    return result
+  })

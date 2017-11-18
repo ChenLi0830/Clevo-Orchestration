@@ -1,5 +1,6 @@
 const emotionRecognition = require('../services/emotionRecognition')
 const debug = require('debug')('test')
+// require('dotenv').config({path: '../../.env'})
 require('dotenv').config({path: '../.env'})
 
 const data = {
@@ -27,13 +28,11 @@ const data = {
   }
 }
 
-module.exports = function () {
-  return emotionRecognition(data)
-    .then(result => {
-      debug('result', result)
-      // const {sentenceCategories, topicCategory} = result
-      // debug('sentenceCategories', sentenceCategories)
-      // debug('topicCategory', topicCategory)
-      return result
-    })
-}
+emotionRecognition(data)
+  .then(result => {
+    debug('result', result)
+    // const {sentenceCategories, topicCategory} = result
+    // debug('sentenceCategories', sentenceCategories)
+    // debug('topicCategory', topicCategory)
+    return result
+  })

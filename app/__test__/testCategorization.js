@@ -1,6 +1,10 @@
+// require('dotenv').config({path: '../../.env'})
+require('dotenv').config({path: '../.env'})
+
 const categorization = require('../services/categorization')
 const debug = require('debug')('test')
-require('dotenv').config({path: '../.env'})
+
+debug('process.env', process.env)
 
 const data = {
   recordId: '5a0fc657c8ce25000ac4f1b4',
@@ -21,12 +25,11 @@ const data = {
   }
 }
 
-module.exports = function () {
-  return categorization(data)
-    .then(result => {
-      const {sentenceCategories, topicCategory} = result
-      // debug('sentenceCategories', sentenceCategories)
-      // debug('topicCategory', topicCategory)
-      return result
-    })
-}
+categorization(data)
+.then(result => {
+  // const {sentenceCategories, topicCategory} = result
+  // debug('sentenceCategories', sentenceCategories)
+  // debug('topicCategory', topicCategory)
+  debug('test result', result)
+  return result
+})

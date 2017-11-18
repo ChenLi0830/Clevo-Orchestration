@@ -1,19 +1,28 @@
 const debug = require('debug')('handleOSSEvent')
 const formatAudioService = require('../services/formatAudio')
 const transcribeSpeechAndSave = require('../services/transcribeSpeech')
+const categorizeSpeechAndSave = require('../services/categorization')
+// const emotionRecognition = require('./services/')
 
 function processAudioFiles (urlArr) {
   let promises = urlArr.map(url => {
     // todo read company configuration, and use the configurations for the variables for this
+    debug('Start formatting audio')
     return formatAudioService({audioUrl: url})
-    .then(savedAudioUrl => {
-      debug(`Audio file has been formatted: ${savedAudioUrl}`)
-
-      return transcribeSpeechAndSave(url)
-    })
-    .then(savedTranscription => {
-      debug('savedTranscription', savedTranscription)
-    })
+      .then(savedAudioUrl => {
+        debug(`Audio file has been formatted: ${savedAudioUrl}`)
+        debug(`Start transcribing speech`)
+        return transcribeSpeechAndSave(url)
+      })
+      .then(savedTranscription => {
+        debug('Speech has been transcribed', savedTranscription)
+        debug('Start categorizing speech')
+        return categorizeSpeechAndSave(savedTranscription)
+      })
+      .then(categorizationResult => {
+        debug('Speech has been categorized', categorizationResult)
+        debug('Start recognizing emotions')
+      })
       //    // save text categorization result
       //    console.log('result', result)
       //    return emotionRecognition(result)
@@ -26,9 +35,9 @@ function processAudioFiles (urlArr) {
       //  }).then(() => {
 
       // return result
-    .catch(error => {
-      console.log('error', error)
-    })
+      .catch(error => {
+        console.log('error', error)
+      })
   })
 
   return Promise.all(promises)

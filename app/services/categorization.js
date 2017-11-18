@@ -1,10 +1,6 @@
 require('es6-promise').polyfill()
-const fetch = require('isomorphic-fetch')
 const debug = require('debug')('categorization-service')
 const {createApolloFetch} = require('apollo-fetch')
-
-const _defaultBannedWords = ['不清楚', '不可能', '不明白', '不知道', '黑名单', '加白', '群发短信', '沉默短信', '屏蔽']
-const _defaultAlertWords = ['媒体', '记者', '工信部', '律师', '媒体', '记者', '消协', '诈骗', '曝光']
 
 const getSpeechCategorization = (aggregatedTranscription) => {
   return new Promise((resolve, reject) => {
@@ -13,9 +9,6 @@ const getSpeechCategorization = (aggregatedTranscription) => {
 }
 
 const getSentenseCategorization = (sentence) => {
-  // return new Promise((resolve, reject) => {
-  //   return resolve(['扣款查询', '回答问题'])
-  // })
   debug('endpoint', process.env.SENTENCE_CATEGORIZATION_ENDPOINT || `http://localhost:3030/graphql`)
 
   const fetch = createApolloFetch({
@@ -43,14 +36,6 @@ const getSentenseCategorization = (sentence) => {
       }
       return data.categorizeSentence
     })
-}
-
-const getWordsFromTranscript = (transcript, words) => {
-  let result = []
-  words.forEach(word => {
-    if (transcript.indexOf(word) > -1) result.push(word)
-  })
-  return result
 }
 
 function saveServiceResult ({_id, result}) {
@@ -135,12 +120,12 @@ function saveServiceResult ({_id, result}) {
     .then(body => {
       debug('body', body)
       debug('body.data', body.data)
-      debug('body.data.updateCall', body.data.updateCall)
-      return body.data.updateCall
+      debug('body.data.callUpdate', body.data.callUpdate)
+      return body.data.callUpdate
     })
 }
 
-function callService (transcriptionResult, bannedWords, alertWords) {
+function callService (transcriptionResult) {
   // remove the first and last quote sign to get the array
   let sentencesStr = transcriptionResult.record.transcription.result.slice(1, -1)
 
@@ -149,7 +134,6 @@ function callService (transcriptionResult, bannedWords, alertWords) {
   let sentenceList = JSON.parse(sentencesChangeSign)
   // debug('sentenceList', sentenceList)
 
-  // const fileName = transcriptionResult.record.source.split('/').slice(-1)
   let nlpPromises = []
 
   // 整段对话
@@ -160,17 +144,12 @@ function callService (transcriptionResult, bannedWords, alertWords) {
   sentenceList.forEach(transcription => {
     let singleSentensePromise = getSentenseCategorization(transcription.onebest)
       .then(category => {
-        let appearedBanWords = getWordsFromTranscript(transcription.onebest, bannedWords)
-        let appearedAlertWords = getWordsFromTranscript(transcription.onebest, alertWords)
         return {
           bg: transcription.bg,
           ed: transcription.ed,
-          onebest: transcription.onebest,
           speaker: transcription.speaker,
-          categories: category,
+          categories: category.categoriesOfSentence
           // categories: category,
-          bannedWords: appearedBanWords,
-          alertWords: appearedAlertWords
         }
       })
 
@@ -185,21 +164,11 @@ function callService (transcriptionResult, bannedWords, alertWords) {
       categorizeResult.sentenceCategories = results.slice(1)
 
       return categorizeResult
-    // newFields.staff = getEmployeeId(fileName, staffIdStartIndex, staffIdEndIndex)
-    // staff: MongoID
-    // breakdowns:
-    // subject:
-    // statistics: silence etc
-    // organization: MongoID
-    // format: EnumCallFormat
-    // encoding: EnumCallEncoding
-    // let durationObj = analyzeTalkDurations(transcriptionList)
-    // newFields = Object.assign({}, newFields, durationObj)
     })
 }
 
-function CategorizeAndSave (transcriptionResult, bannedWords = _defaultBannedWords , alertWords = _defaultAlertWords , staffIdStartIndex, staffIdEndIndex) {
-  return callService(transcriptionResult, bannedWords, alertWords, staffIdStartIndex, staffIdEndIndex)
+function CategorizeAndSave (transcriptionResult) {
+  return callService(transcriptionResult)
     .then(categorizationResult => {
       debug('categorizationResult.topicCategory')
       // debug('Audio file has been transcribed: ', transcriptionResult)

@@ -102,12 +102,14 @@ function callService (audioURL, transcriptionList) {
 
   const query = `
     mutation recognizeEmotion($audioURL: String!, $transcriptionList: String!){
-        recognizeEmotion(
-        audioURL: $audioURL
-        transcriptionList: $transcriptionList
-        ){
-        emotions
+      recognizeEmotion(audioURL:$audioURL, transcriptionList: $transcriptionList){
+        emotions{
+          begin
+          end
+          prob
+          tag
         }
+      }
     }
   `
 
@@ -127,7 +129,10 @@ function callService (audioURL, transcriptionList) {
 
 function recognizeEmotionAndSave (categorizationResult) {
   let audioURL = categorizationResult.record.source
-  let transcriptionList = categorizationResult.record.transcription.result
+  let transcriptionList = categorizationResult.record.transcription.result.trim()
+  if (transcriptionList[0] === '\'') {
+    transcriptionList = transcriptionList.substr(1, transcriptionList.length - 2)
+  }
   return callService(audioURL, transcriptionList)
     .then(emotions => saveServiceResult({_id: categorizationResult.recordId, result: emotions}))
 }

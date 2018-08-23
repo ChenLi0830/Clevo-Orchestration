@@ -1,3 +1,9 @@
+/*******************************************************************************
+ * Copyright (C) 2017-2018 Clevo Artificial Intelligence Inc.
+ * Creator: Chen Li<chen.li@clevoice.com>
+ * Creation Date: 2017-08
+ * Call catogorization service, and save resulted categorization list to DB
+ *******************************************************************************/
 require('es6-promise').polyfill()
 const debug = require('debug')('categorization-service')
 const {createApolloFetch} = require('apollo-fetch')
@@ -12,6 +18,10 @@ const getSpeechCategorization = (aggregatedTranscription) => {
   })
 }
 
+/**
+ * Categorize transcribed sentence
+ * @param {String} sentence
+ */
 const getSentenseCategorization = (sentence) => {
   const fetch = createApolloFetch({
     uri: process.env.SENTENCE_CATEGORIZATION_ENDPOINT || `http://localhost:3030/graphql`
@@ -49,6 +59,10 @@ const getSentenseCategorization = (sentence) => {
     })
 }
 
+/**
+ * Save result to DB
+ * @param {*} param0 
+ */
 function saveServiceResult ({_id, result}) {
   const fetch = createApolloFetch({
     uri: process.env.SERVER_ENDPOINT || `http://localhost:4000/graphql`
@@ -145,6 +159,10 @@ function saveServiceResult ({_id, result}) {
     })
 }
 
+/**
+ * Split the entire transcribe speech, call categorization service for each sentence
+ * @param {*} transcriptionResult
+ */
 function callService (transcriptionResult) {
   // remove the first and last quote sign to get the array
   let sentencesStr = transcriptionResult.record.transcription.result.slice(1, -1)
@@ -152,7 +170,6 @@ function callService (transcriptionResult) {
   // replace all single quote with double quote to parse
   let sentencesChangeSign = sentencesStr.replace(/'/g, '"')
   let sentenceList = JSON.parse(sentencesChangeSign)
-  // debug('sentenceList', sentenceList)
 
   let nlpPromises = []
 
@@ -160,13 +177,13 @@ function callService (transcriptionResult) {
   let speechTranscription = sentenceList.reduce((speech, sentence) => speech + sentence, '')
   nlpPromises.push(getSpeechCategorization(speechTranscription))
 
-  // 每句对话 - 串行处理
+  /**
+   * processing each sentence one by one
+   * @param {*} sentenceList
+   */
   async function categorizeInSeries (sentenceList) {
     let results = []
-    // let index = 0
     for (const transcription of sentenceList) {
-      // index += 1
-      // let retries = 0
       await retry(async bail => {
         let category = await getSentenseCategorization(transcription.onebest)
         let categoryResult = {
@@ -174,15 +191,8 @@ function callService (transcriptionResult) {
           ed: transcription.ed,
           speaker: transcription.speaker,
           categories: category.categoriesOfSentence
-          // categories: category,
         }
         debug('categoryResult', categoryResult)
-        // if (index === 2) {
-        //   if (retries <= 2) {
-        //     retries++
-        //     throw new Error('test error!')
-        //   }
-        // }
         results.push(categoryResult)
       }, {
         retries: 3,
@@ -194,7 +204,9 @@ function callService (transcriptionResult) {
   }
   return categorizeInSeries(sentenceList)
 
-  // // 每句对话 - 并行处理
+  /**
+   * Processing all sentences in parallel
+   */
   // sentenceList.forEach(transcription => {
   //   let singleSentensePromise = getSentenseCategorization(transcription.onebest)
   //     .then(category => {
@@ -222,14 +234,15 @@ function callService (transcriptionResult) {
   //   })
 }
 
+/**
+ * Service Orchestration to perform categorization
+ * @param {*} transcriptionResult
+ */
 function CategorizeAndSave (transcriptionResult) {
   debug('endpoint', process.env.SENTENCE_CATEGORIZATION_ENDPOINT || `http://localhost:3030/graphql`)
 
   return callService(transcriptionResult)
     .then(categorizationResult => {
-      // debug('categorizationResult.topicCategory')
-      // debug('Audio file has been transcribed: ', transcriptionResult)
-      // debug('url', url)
       return saveServiceResult({_id: transcriptionResult.recordId, result: categorizationResult})
     })
 }

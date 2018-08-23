@@ -1,5 +1,14 @@
+/*******************************************************************************
+ * Copyright (C) 2017-2018 Clevo Artificial Intelligence Inc.
+ * Creator: Chen Li<chen.li@clevoice.com>
+ * Creation Date: 2017-08
+ * Call format-audio service, and get the url of formatted audio file.
+ *******************************************************************************/
 const { createApolloFetch } = require('apollo-fetch')
 
+/**
+ * Format Audio using corresponding parameters
+ */
 const formatAudio = ({audioUrl, encoding = 'pcm_s16le', channel = 1, sampleRate = 8000}) => {
   const fetch = createApolloFetch({
     uri: process.env.FORMAT_AUDIO_ENDPOINT || `http://localhost:3030/graphql`

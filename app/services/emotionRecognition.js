@@ -1,6 +1,16 @@
+/*******************************************************************************
+ * Copyright (C) 2017-2018 Clevo Artificial Intelligence Inc.
+ * Creator: Chen Li<chen.li@clevoice.com>
+ * Creation Date: 2017-08
+ * Call emotion-recognition service, and save resulted emotion list to DB
+ *******************************************************************************/
 const { createApolloFetch } = require('apollo-fetch')
 const debug = require('debug')('emotion-recognition-service')
 
+/**
+ * Save emotion recognition result list to DB
+ * @param {*} param0
+ */
 function saveServiceResult ({_id, result}) {
   const fetch = createApolloFetch({
     uri: process.env.SERVER_ENDPOINT || `http://localhost:4000/graphql`
@@ -80,13 +90,16 @@ function saveServiceResult ({_id, result}) {
     }
   })
     .then(body => {
-    //   debug('body', body)
-    //   debug('body.data', body.data)
       debug('body.data.callUpdate', body.data.callUpdate)
       return body.data.callUpdate
     })
 }
 
+/**
+ * Emotion recognition based on transcription segment
+ * @param {String} audioURL url of the audio file
+ * @param {Array} transcriptionList segmented audio transcription text list
+ */
 function callService (audioURL, transcriptionList) {
   debug('endpoint', process.env.EMOTION_RECOGNITION_ENDPOINT || `http://localhost/graphql`)
   debug('audioURL, transcriptionList', audioURL, transcriptionList)
@@ -127,6 +140,10 @@ function callService (audioURL, transcriptionList) {
     })
 }
 
+/**
+ * Service Orchestration: recognize emotions and save
+ * @param {Object} categorizationResult obj returned by categorization service
+ */
 function recognizeEmotionAndSave (categorizationResult) {
   let audioURL = categorizationResult.record.source
   let transcriptionList = categorizationResult.record.transcription.result.trim()

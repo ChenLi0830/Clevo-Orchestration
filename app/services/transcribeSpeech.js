@@ -1,27 +1,35 @@
+/*******************************************************************************
+ * Copyright (C) 2017-2018 Clevo Artificial Intelligence Inc.
+ * Creator: Chen Li<chen.li@clevoice.com>
+ * Creation Date: 2017-08
+ * Calling transcribe speech service, from audio to text
+ *******************************************************************************/
+
 const { createApolloFetch } = require('apollo-fetch')
 const debug = require('debug')('transcribe-service')
 
-function saveServiceResult ({result, sourceUrl}) {
+/**
+ * Transcribe speech and save result
+ * @param {Object} param0 - query result object
+ */
+function saveServiceResult ({result}) {
   const fetch = createApolloFetch({
     uri: process.env.SERVER_ENDPOINT || `http://localhost:4000/graphql`
   })
 
   const query = `
-    mutation callCreate (
-        $status: EnumCallStatus,
-        $format: EnumCallFormat,
-        $encoding: EnumCallEncoding,
-        $source: String,
-        $transcription: CallTranscriptionInput,
-    ) { callCreate (record: {
-        status: $status,
-        format: $format,
-        encoding: $encoding,
-        source: $source,
-        transcription: $transcription,
+  mutation callCreate (
+    $status: EnumCallStatus,
+    $transcription: CallTranscriptionInput,
+    $breakdowns: [CallCallBreakdownsInput]
+  ) { 
+    callCreate (record: {
+      status: $status,
+      transcription: $transcription,
+      breakdowns: $breakdowns
     }) {
-        recordId
-        record {
+      recordId
+      record {
         _id,
         status,
         format,
@@ -32,12 +40,28 @@ function saveServiceResult ({result, sourceUrl}) {
             taskId,
             status,
             result
-        },
-        createdAt,
-        updatedAt
         }
-    }}
+        breakdowns {
+            begin
+            end
+            transcript
+            speaker
+        }
+        createdAt
+        updatedAt
+      }
+    }
+  }
   `
+
+  let breakdowns = result.result.map(item => {
+    return {
+      begin: item.begin_time,
+      end: item.end_time,
+      transcript: item.text,
+      speaker: item.channel_id === 0 ? 'staff' : 'customer'
+    }
+  })
 
   debug('JSON.parse(result.result)', JSON.parse(result.result))
   debug('JSON.stringify(result.result)', JSON.stringify(result.result))
@@ -45,16 +69,12 @@ function saveServiceResult ({result, sourceUrl}) {
     query,
     variables: {
       status: 'active',
-      format: 'wav',
-      encoding: 'pcm',
-      source: sourceUrl,
       transcription: {
-        processor: 'iflytek',
-        taskId: result.id,
-        status: result.status,
-        // result: result.result
-        result: JSON.parse(result.result)
-      }
+        'taskId': result.id,
+        'status': 'completed',
+        'result': result.result
+      },
+      'breakdowns': breakdowns
     }
   })
 
@@ -64,49 +84,9 @@ function saveServiceResult ({result, sourceUrl}) {
     })
 }
 
-function callService (audioUrl) {
-  debug('endpoint', process.env.TRANSCRIBE_SPEECH_ENDPOINT || `http://localhost:3030/graphql`)
-
-  const fetch = createApolloFetch({
-    uri: process.env.TRANSCRIBE_SPEECH_ENDPOINT || `http://localhost:3030/graphql`
-  })
-
-  const variables = {
-    file: audioUrl
-  }
-
-  const query = `
-      mutation transcribeFile($file:String!){
-        transcriptionCreate(file: $file){
-          id
-          status
-          result
-        }
-      }
-    `
-
-  return fetch({
-    query,
-    variables
-  })
-  .then(body => {
-    // debug('service response body', body)
-    let data = body.data
-    if (!data) {
-      throw new Error(`call transcribe-speech service failed`)
-    }
-    return data.transcriptionCreate
-  })
-}
-
-function transcribeSpeechAndSave (audioUrl) {
-  return callService(audioUrl)
-    .then(transcriptionResult => {
-      debug('Audio file has been transcribed: ', transcriptionResult)
-      // debug('Audio file has been transcribed: ', transcriptionResult)
-      // console.log('url', url)
-      return saveServiceResult({result: transcriptionResult, sourceUrl: audioUrl})
-    })
+function saveTranscriptionResult (transcriptionResult) {
+  debug('transcriptionResult', transcriptionResult)
+  return saveServiceResult({result: transcriptionResult})
 }
 
 module.exports = transcribeSpeechAndSave

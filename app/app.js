@@ -1,3 +1,12 @@
+/*******************************************************************************
+ * Copyright (C) 2017-2018 Clevo Artificial Intelligence Inc.
+ *
+ * Creator: Chen Li<chen.li@clevoice.com>
+ * Creation Date: 2017-08
+ *
+ * Node Server Configuration
+ *******************************************************************************/
+
 require('dotenv').config({path: '../.env'})
 
 const express = require('express')
@@ -6,8 +15,13 @@ const bodyParser = require('body-parser')
 const handleOSSEvents = require('./handlers/handleOSSEvents')
 const debug = require('debug')('express')
 
-// const convertAudioToWav = require('./handler')
-
+/**
+ * Handle OSS file read / write Errors
+ * @param {Error} err 
+ * @param {*} req 
+ * @param {*} res 
+ * @param {*} next 
+ */
 const OSSErrorHandler = (err, req, res, next) => {
   // Log error
   console.error('err', err)
@@ -18,30 +32,23 @@ const OSSErrorHandler = (err, req, res, next) => {
   }
 }
 
-// parse body
+/**
+ * Parse request body
+ */
 app.use(bodyParser.json()) // to support JSON-encoded bodies
 app.use(bodyParser.urlencoded({ // to support URL-encoded bodies
   extended: true
 }))
 app.use(bodyParser.text()) // to support plain text
 
-// routes
+/**
+ * Routes
+ */
 app.get('/', (req, res) => res.send('Orchestration Service is up :D!'))
 app.get('/notifications', (req, res) => res.send('/notifications Orchestration Service is up :D!'))
 
-app.post('/', (req, res) => {
-  // debug('req', req)
-  require('./__test__/testCategorization')()
-    .then(result => {
-      debug('test result', result)
-    })
-  // debug('test', test)
-  res.send('Got a POST request')
-})
-
 app.post('/notifications', (req, res, next) => {
-  // Decode base64
-  const bodyStr = Buffer.from(req.body, 'base64').toString('ascii')
+  const bodyStr = Buffer.from(req.body, 'base64').toString('ascii') // Decode base64
   const body = JSON.parse(bodyStr)
 
   if (!body || !body.events) {
@@ -58,7 +65,4 @@ app.use(OSSErrorHandler)
 
 let port = process.env.PORT || 3000
 const server = app.listen(port, () => debug(`App listening on port ${port}!`))
-
-// increase the timeout to 1 hour
-// app.timeout = 3600000
 server.setTimeout(60 * 60 * 1000)

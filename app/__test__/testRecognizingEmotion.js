@@ -1,6 +1,11 @@
+/*******************************************************************************
+ * Copyright (C) 2017-2018 Clevo Artificial Intelligence Inc.
+ * Creator: Chen Li<chen.li@clevoice.com>
+ * Creation Date: 2017-08
+ * Service test: emotion recognition
+ *******************************************************************************/
 const emotionRecognition = require('../services/emotionRecognition')
 const debug = require('debug')('test')
-// require('dotenv').config({path: '../../.env'})
 require('dotenv').config({path: '../.env'})
 
 const data = {

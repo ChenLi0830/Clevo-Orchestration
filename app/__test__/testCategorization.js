@@ -1,10 +1,14 @@
-// require('dotenv').config({path: '../../.env'})
+/*******************************************************************************
+ * Copyright (C) 2017-2018 Clevo Artificial Intelligence Inc.
+ * Creator: Chen Li<chen.li@clevoice.com>
+ * Creation Date: 2017-08
+ * Service test: Categorization
+ *******************************************************************************/
 require('dotenv').config({path: '../.env'})
-
 const categorization = require('../services/categorization')
 const debug = require('debug')('test')
 
-debug('process.env', process.env)
+// debug('process.env', process.env)
 
 const data = {
   recordId: '5a0fc657c8ce25000ac4f1b4',
@@ -27,9 +31,6 @@ const data = {
 
 categorization(data)
 .then(result => {
-  // const {sentenceCategories, topicCategory} = result
-  // debug('sentenceCategories', sentenceCategories)
-  // debug('topicCategory', topicCategory)
-  debug('test result', result)
+  debug('test result', JSON.stringify(result))
   return result
 })

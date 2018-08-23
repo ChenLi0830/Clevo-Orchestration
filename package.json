@@ -1,8 +1,7 @@
 {
-  "name": "clevo-audio-formatting-service",
+  "name": "clevo-audio-orchestration-service",
   "version": "1.0.0",
-  "description": "ML-Docker-Image",
-  "main": "index.js",
+  "main": "app.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node app.js",

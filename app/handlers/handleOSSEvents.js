@@ -1,11 +1,19 @@
-const {formatAudio} = require('../services')
+const debug = require('debug')('handleOSSEvent')
+const formatAudioService = require('../services/formatAudio')
+const transcribeSpeechAndSave = require('../services/transcribeSpeech')
 
 function processAudioFiles (urlArr) {
   let promises = urlArr.map(url => {
-    return formatAudio(url).then(savedAudioUrl => {
-      //    console.log('result', result)
-      //    return categorizeAudio(url)
-      //  }).then(result => {
+    // todo read company configuration, and use the configurations for the variables for this
+    return formatAudioService({audioUrl: url})
+    .then(savedAudioUrl => {
+      debug(`Audio file has been formatted: ${savedAudioUrl}`)
+
+      return transcribeSpeechAndSave(url)
+    })
+    .then(savedTranscription => {
+      debug('savedTranscription', savedTranscription)
+    })
       //    // save text categorization result
       //    console.log('result', result)
       //    return emotionRecognition(result)
@@ -16,9 +24,9 @@ function processAudioFiles (urlArr) {
       //    // post processing and save result
       //    console.log('result', result)
       //  }).then(() => {
-      console.log(`File has been processed: ${savedAudioUrl}`)
-      return savedAudioUrl
-    }).catch(error => {
+
+      // return result
+    .catch(error => {
       console.log('error', error)
     })
   })
